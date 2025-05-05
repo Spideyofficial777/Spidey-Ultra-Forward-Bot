@@ -2,4 +2,4 @@
 
 echo "Starting Forward Bot..."
 
-python3 main.py
+python3 bot.py
