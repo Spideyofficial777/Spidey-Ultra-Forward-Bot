@@ -3,6 +3,7 @@ import sys
 import asyncio 
 import datetime
 import psutil
+import random
 from pyrogram.types import Message
 from database import db, mongodb_version
 from config import Config, temp
@@ -18,49 +19,76 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedi
 main_buttons = [[
         InlineKeyboardButton('❗️ʜᴇʟᴘ', callback_data='help')
         ],[
+        InlineKeyboardButton('❗️support', callback_data='help'),
+        InlineKeyboardButton('about', callback_data='about')
+        ],[
         InlineKeyboardButton('📜 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/spideyofficial777'),
         InlineKeyboardButton('📢 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/spideyofficialupdatez')
         ],[
         InlineKeyboardButton('💳 ᴅᴏɴᴀᴛᴇ', callback_data='donate')
         ]]
 #===================Start Function===================#
-
 @Client.on_message(filters.private & filters.command(['start']))
 async def start(client, message):
     user = message.from_user
+
     if Config.FORCE_SUB_ON:
-        try:
-            member = await client.get_chat_member(Config.FORCE_SUB_CHANNEL, user.id)
-            if member.status == "kicked":
-                await client.send_message(
-                    chat_id=message.chat.id,
-                    text="You are banned from using this bot.",
-                )
-                return
-        except:
-            # Send a message asking the user to join the channel
-            join_button = [
-                [InlineKeyboardButton("ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ", url=f"{Config.FORCE_SUB_CHANNEL}")],
-                [InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{client.username}?start=start")]
-            ]
+        not_joined = []
+        for channel in Config.FORCE_SUB_CHANNEL:
+            try:
+                member = await client.get_chat_member(channel, user.id)
+                if member.status == "kicked":
+                    await client.send_message(
+                        chat_id=message.chat.id,
+                        text="You are banned from using this bot.",
+                    )
+                    return
+            except:
+                not_joined.append(channel)
+
+        if not_joined:
+            bot_info = await client.get_me()
+            join_buttons = [[InlineKeyboardButton("ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ", url=f"https://t.me/{ch.lstrip('@')}")] for ch in not_joined]
+            join_buttons.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{bot_info.username}?start=start")])
+
             await client.send_message(
                 chat_id=message.chat.id,
-                text="ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴜsᴇ ᴛʜɪs ʙᴏᴛ.",
-                reply_markup=InlineKeyboardMarkup(join_button)
+                text="ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴀʟʟ ᴛʜᴇ ʀᴇǫᴜɪʀᴇᴅ ᴄʜᴀɴɴᴇʟs ᴛᴏ ᴜsᴇ ᴛʜɪs ʙᴏᴛ.",
+                reply_markup=InlineKeyboardMarkup(join_buttons)
             )
             return
 
+    # Register user if not exists
     if not await db.is_user_exist(user.id):
         await db.add_user(user.id, message.from_user.mention)
         await client.send_message(
             chat_id=Config.LOG_CHANNEL,
             text=f"#NewUser\n\nIᴅ - {user.id}\nNᴀᴍᴇ - {message.from_user.mention}"
         )
-    reply_markup = InlineKeyboardMarkup(main_buttons)
-    await client.send_message(
+
+    # Fancy welcome animation
+    m = await message.reply_text("<b>ʜᴇʟʟᴏ ʙᴀʙʏ, ʜᴏᴡ ᴀʀᴇ ʏᴏᴜ \nᴡᴀɪᴛ ᴀ ᴍᴏᴍᴇɴᴛ ʙᴀʙʏ ....</b>")
+    await asyncio.sleep(0.3)
+    await m.edit_text("🎊")
+    await asyncio.sleep(0.3)
+    await m.edit_text("⚡")
+    await asyncio.sleep(0.4)
+    await m.edit_text("<b>ꜱᴛᴀʀᴛɪɴɢ ʙᴀʙʏ...</b>")
+    await asyncio.sleep(0.4)
+    await m.delete()
+
+    m = await message.reply_sticker("CAACAgUAAxkBAAIdBGd7qZ7kMBTPT2YAAdnPRDtBSw9jwAACqwQAAr7vuFdHULNVi6H4nB4E")
+    await asyncio.sleep(3)
+    await m.delete()
+
+    # Random welcome image + caption
+    welcome_image_url = random.choice(Config.START_IMG)
+    await client.send_photo(
         chat_id=message.chat.id,
-        reply_markup=InlineKeyboardMarkup(main_buttons),
-        text=Translation.START_TXT.format(message.from_user.first_name))
+        photo=welcome_image_url,
+        caption=Translation.START_TXT.format(message.from_user.first_name),
+        reply_markup=InlineKeyboardMarkup(main_buttons)
+    )
 
 #Dont Remove My Credit @Silicon_Bot_Update 
 #This Repo Is By @Silicon_Official 
